@@ -1,6 +1,6 @@
 # Fake placeholder values — replace with your real environment details.
 
-location            = "eastus2"
+location            = "canadacentral"
 resource_group_name = "rg-ai-foundry-lz-fake"
 name_prefix         = "myai"
 
@@ -26,8 +26,11 @@ tags = {
 # Nothing extra to enable. Just apply with the switches below all false.
 deploy_log_analytics = true
 
-# --- Phase 2: deploy a model into Foundry.
-deploy_model_gpt4o = false
+# --- Phase 2: deploy a model into Foundry (must be available in var.location).
+deploy_model   = false
+model_name     = "gpt-5.5"
+model_version  = "2026-04-24"
+model_sku_type = "Standard"
 
 # --- Phase 3: GenAI data services.
 deploy_genai_key_vault          = false

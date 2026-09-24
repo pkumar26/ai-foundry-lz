@@ -52,10 +52,40 @@ variable "deploy_log_analytics" {
   default     = true
 }
 
-variable "deploy_model_gpt4o" {
+variable "deploy_model" {
   type        = bool
-  description = "Deploy the gpt-4o model into the Foundry account."
+  description = "Deploy a model into the Foundry account (see model_* variables)."
   default     = false
+}
+
+variable "model_name" {
+  type        = string
+  description = "Model name to deploy. Must be available in var.location."
+  default     = "gpt-5.5"
+}
+
+variable "model_version" {
+  type        = string
+  description = "Model version to deploy."
+  default     = "2026-04-24"
+}
+
+variable "model_format" {
+  type        = string
+  description = "Model format/publisher."
+  default     = "OpenAI"
+}
+
+variable "model_sku_type" {
+  type        = string
+  description = "Deployment SKU supported in var.location (e.g. Standard, GlobalStandard, DataZoneStandard)."
+  default     = "Standard"
+}
+
+variable "model_capacity" {
+  type        = number
+  description = "Deployment capacity (tokens-per-minute units)."
+  default     = 10
 }
 
 variable "deploy_genai_key_vault" {

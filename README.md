@@ -62,7 +62,7 @@ and re-apply. Terraform only adds the newly enabled resources.
 | Phase | Toggle(s) in `terraform.tfvars` | Adds |
 |---|---|---|
 | 1 – Baseline | *(none; `deploy_log_analytics` already true)* | Subnets, NSGs, private DNS, Log Analytics, Foundry account + project |
-| 2 – Model | `deploy_model_gpt4o` | gpt-4o deployment |
+| 2 – Model | `deploy_model` | model deployment (see `model_*` vars) |
 | 3 – GenAI data | `deploy_genai_*`, `deploy_container_app_environment` | Key Vault, Storage, Cosmos, App Config, ACR, Container Apps env |
 | 4 – Knowledge | `deploy_ai_search`, `deploy_bing_grounding` | AI Search, Bing Grounding |
 | 5 – Agent | `deploy_ai_agent_service` | Foundry Agent service + its BYOR data services + project connections |

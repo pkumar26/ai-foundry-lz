@@ -80,17 +80,17 @@ module "ai_lz" {
       create_ai_agent_service = var.deploy_ai_agent_service
     }
 
-    ai_model_deployments = var.deploy_model_gpt4o ? {
-      gpt4o = {
-        name = "gpt-4o"
+    ai_model_deployments = var.deploy_model ? {
+      main = {
+        name = var.model_name
         model = {
-          format  = "OpenAI"
-          name    = "gpt-4o"
-          version = "2024-11-20"
+          format  = var.model_format
+          name    = var.model_name
+          version = var.model_version
         }
         scale = {
-          type     = "GlobalStandard"
-          capacity = 10
+          type     = var.model_sku_type
+          capacity = var.model_capacity
         }
       }
     } : {}
