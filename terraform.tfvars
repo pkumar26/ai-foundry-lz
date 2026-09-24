@@ -17,6 +17,15 @@ tags = {
   owner       = "fake-team"
 }
 
+# AI Foundry projects (created in Phase 1). Add entries for more projects.
+ai_projects = {
+  proj1 = {
+    name         = "team-alpha"
+    display_name = "Team Alpha"
+    description  = "First Foundry project."
+  }
+}
+
 # ===========================================================================
 # Phased rollout switches. Start with everything false (Phase 1), run apply,
 # then flip ONE group to true and re-apply. Recommended order below.
@@ -26,11 +35,22 @@ tags = {
 # Nothing extra to enable. Just apply with the switches below all false.
 deploy_log_analytics = true
 
-# --- Phase 2: deploy a model into Foundry (must be available in var.location).
-deploy_model   = false
-model_name     = "gpt-5.5"
-model_version  = "2026-04-24"
-model_sku_type = "Standard"
+# --- Phase 2: deploy models into Foundry. Add entries to deploy; empty = none.
+# Each key is the deployment name. Model + SKU must be available in var.location.
+model_deployments = {
+  # "gpt-5.5" = {
+  #   model_name    = "gpt-5.5"
+  #   model_version = "2026-04-24"
+  #   sku_type      = "GlobalStandard"
+  #   capacity      = 10
+  # }
+  # "gpt-6-astra" = {
+  #   model_name    = "gpt-6-astra"
+  #   model_version = "2026-09-03"
+  #   sku_type      = "GlobalStandard"
+  #   capacity      = 10
+  # }
+}
 
 # --- Phase 3: GenAI data services.
 deploy_genai_key_vault          = false
@@ -40,9 +60,31 @@ deploy_genai_app_configuration  = false
 deploy_genai_container_registry = false
 deploy_container_app_environment = false
 
+# Optional GenAI service overrides (defaults shown; uncomment to change).
+# ACR (Container Registry)
+# acr_sku                           = "Premium"
+# acr_zone_redundancy_enabled       = true
+# acr_public_network_access_enabled = false
+# ACA (Container Apps environment)
+# aca_zone_redundancy_enabled        = true
+# aca_internal_load_balancer_enabled = true
+# Storage account
+# storage_account_tier                  = "Standard"
+# storage_account_replication_type      = "GRS"
+# storage_access_tier                   = "Hot"
+# storage_shared_access_key_enabled     = true
+# storage_public_network_access_enabled = false
+
 # --- Phase 4: knowledge services.
 deploy_ai_search      = false
 deploy_bing_grounding = false
+
+# Optional AI Search overrides. Leave search_service_name unset to auto-generate
+# a globally-unique name (avoids 409 name collisions on retries).
+# search_service_name    = "ailz-ks-search-cac-001"
+# search_sku             = "standard"
+# search_replica_count   = 2
+# search_partition_count = 1
 
 # --- Phase 5: Foundry AI Agent service (also creates its BYOR data services).
 deploy_ai_agent_service = false

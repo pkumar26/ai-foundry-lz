@@ -1,3 +1,12 @@
+# Random suffix to keep the globally-unique AI Search name from colliding.
+resource "random_string" "search_suffix" {
+  length  = 4
+  lower   = true
+  numeric = true
+  special = false
+  upper   = false
+}
+
 module "ai_lz" {
   source  = "Azure/avm-ptn-aiml-landing-zone/azurerm"
   version = "0.5.2"
@@ -52,6 +61,18 @@ module "ai_lz" {
   jumpvm_definition   = { deploy = var.deploy_jumpvm }
   buildvm_definition  = { deploy = var.deploy_buildvm }
 
+  # App Gateway stays off. The object must be non-null (its default is null) or
+  # the WAF-policy submodule fails on a null .deploy. Empty maps satisfy the
+  # required fields while deploy = false keeps the gateway from being created.
+  app_gateway_definition = {
+    deploy                = false
+    backend_address_pools = {}
+    backend_http_settings = {}
+    frontend_ports        = {}
+    http_listeners        = {}
+    request_routing_rules = {}
+  }
+
   # AI gateway. publisher_* are required by the type even when deploy = false.
   apim_definition = {
     deploy          = var.deploy_apim
@@ -60,15 +81,40 @@ module "ai_lz" {
   }
 
   # GenAI application services.
-  container_app_environment_definition = { deploy = var.deploy_container_app_environment }
-  genai_key_vault_definition           = { deploy = var.deploy_genai_key_vault }
-  genai_storage_account_definition     = { deploy = var.deploy_genai_storage }
-  genai_cosmosdb_definition            = { deploy = var.deploy_genai_cosmosdb }
-  genai_app_configuration_definition   = { deploy = var.deploy_genai_app_configuration }
-  genai_container_registry_definition  = { deploy = var.deploy_genai_container_registry }
+  container_app_environment_definition = {
+    deploy                         = var.deploy_container_app_environment
+    name                           = var.aca_name
+    zone_redundancy_enabled        = var.aca_zone_redundancy_enabled
+    internal_load_balancer_enabled = var.aca_internal_load_balancer_enabled
+  }
+  genai_key_vault_definition = { deploy = var.deploy_genai_key_vault }
+  genai_storage_account_definition = {
+    deploy                        = var.deploy_genai_storage
+    name                          = var.storage_name
+    account_tier                  = var.storage_account_tier
+    account_replication_type      = var.storage_account_replication_type
+    access_tier                   = var.storage_access_tier
+    shared_access_key_enabled     = var.storage_shared_access_key_enabled
+    public_network_access_enabled = var.storage_public_network_access_enabled
+  }
+  genai_cosmosdb_definition          = { deploy = var.deploy_genai_cosmosdb }
+  genai_app_configuration_definition = { deploy = var.deploy_genai_app_configuration }
+  genai_container_registry_definition = {
+    deploy                        = var.deploy_genai_container_registry
+    name                          = var.acr_name
+    sku                           = var.acr_sku
+    zone_redundancy_enabled       = var.acr_zone_redundancy_enabled
+    public_network_access_enabled = var.acr_public_network_access_enabled
+  }
 
   # Knowledge services.
-  ks_ai_search_definition      = { deploy = var.deploy_ai_search }
+  ks_ai_search_definition = {
+    deploy          = var.deploy_ai_search
+    name            = coalesce(var.search_service_name, "${var.name_prefix}-search-${random_string.search_suffix.result}")
+    sku             = var.search_sku
+    replica_count   = var.search_replica_count
+    partition_count = var.search_partition_count
+  }
   ks_bing_grounding_definition = { deploy = var.deploy_bing_grounding }
 
   # AI Foundry account + project (always created). Model, agent service, and the
@@ -80,26 +126,26 @@ module "ai_lz" {
       create_ai_agent_service = var.deploy_ai_agent_service
     }
 
-    ai_model_deployments = var.deploy_model ? {
-      main = {
-        name = var.model_name
+    ai_model_deployments = {
+      for dep_name, m in var.model_deployments : dep_name => {
+        name = dep_name
         model = {
-          format  = var.model_format
-          name    = var.model_name
-          version = var.model_version
+          format  = m.format
+          name    = m.model_name
+          version = m.model_version
         }
         scale = {
-          type     = var.model_sku_type
-          capacity = var.model_capacity
+          type     = m.sku_type
+          capacity = m.capacity
         }
       }
-    } : {}
+    }
 
     ai_projects = {
-      proj1 = {
-        name                       = "team-alpha"
-        display_name               = "Team Alpha"
-        description                = "First Foundry project."
+      for k, p in var.ai_projects : k => {
+        name                       = p.name
+        display_name               = p.display_name
+        description                = p.description
         create_project_connections = var.deploy_ai_agent_service
       }
     }

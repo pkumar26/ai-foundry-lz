@@ -42,6 +42,22 @@ variable "tags" {
   default     = {}
 }
 
+variable "ai_projects" {
+  type = map(object({
+    name         = string
+    display_name = string
+    description  = string
+  }))
+  description = "AI Foundry projects to create. Map key is an arbitrary identifier."
+  default = {
+    proj1 = {
+      name         = "team-alpha"
+      display_name = "Team Alpha"
+      description  = "First Foundry project."
+    }
+  }
+}
+
 # ---------------------------------------------------------------------------
 # Feature toggles. All default to false so you can enable resources in phases.
 # ---------------------------------------------------------------------------
@@ -52,40 +68,16 @@ variable "deploy_log_analytics" {
   default     = true
 }
 
-variable "deploy_model" {
-  type        = bool
-  description = "Deploy a model into the Foundry account (see model_* variables)."
-  default     = false
-}
-
-variable "model_name" {
-  type        = string
-  description = "Model name to deploy. Must be available in var.location."
-  default     = "gpt-5.5"
-}
-
-variable "model_version" {
-  type        = string
-  description = "Model version to deploy."
-  default     = "2026-04-24"
-}
-
-variable "model_format" {
-  type        = string
-  description = "Model format/publisher."
-  default     = "OpenAI"
-}
-
-variable "model_sku_type" {
-  type        = string
-  description = "Deployment SKU supported in var.location (e.g. Standard, GlobalStandard, DataZoneStandard)."
-  default     = "Standard"
-}
-
-variable "model_capacity" {
-  type        = number
-  description = "Deployment capacity (tokens-per-minute units)."
-  default     = 10
+variable "model_deployments" {
+  type = map(object({
+    model_name    = string
+    model_version = string
+    format        = optional(string, "OpenAI")
+    sku_type      = optional(string, "GlobalStandard")
+    capacity      = optional(number, 10)
+  }))
+  description = "Models to deploy into Foundry. Map key is the deployment name. Empty = none."
+  default     = {}
 }
 
 variable "deploy_genai_key_vault" {
@@ -133,6 +125,111 @@ variable "deploy_ai_search" {
 variable "deploy_bing_grounding" {
   type        = bool
   description = "Deploy the Bing Grounding knowledge service."
+  default     = false
+}
+
+variable "search_service_name" {
+  type        = string
+  description = "AI Search service name (globally unique). Null auto-generates a unique name."
+  default     = null
+}
+
+variable "search_sku" {
+  type        = string
+  description = "AI Search SKU (e.g. basic, standard, standard2, standard3)."
+  default     = "standard"
+}
+
+variable "search_replica_count" {
+  type        = number
+  description = "AI Search replica count."
+  default     = 2
+}
+
+variable "search_partition_count" {
+  type        = number
+  description = "AI Search partition count."
+  default     = 1
+}
+
+# --- Container Registry (ACR) ---
+variable "acr_name" {
+  type        = string
+  description = "Container Registry name. Null auto-generates."
+  default     = null
+}
+
+variable "acr_sku" {
+  type        = string
+  description = "Container Registry SKU (Basic, Standard, Premium)."
+  default     = "Premium"
+}
+
+variable "acr_zone_redundancy_enabled" {
+  type        = bool
+  description = "Enable zone redundancy on the Container Registry (Premium only)."
+  default     = true
+}
+
+variable "acr_public_network_access_enabled" {
+  type        = bool
+  description = "Allow public network access to the Container Registry."
+  default     = false
+}
+
+# --- Container Apps environment (ACA) ---
+variable "aca_name" {
+  type        = string
+  description = "Container Apps environment name. Null auto-generates."
+  default     = null
+}
+
+variable "aca_zone_redundancy_enabled" {
+  type        = bool
+  description = "Enable zone redundancy on the Container Apps environment."
+  default     = true
+}
+
+variable "aca_internal_load_balancer_enabled" {
+  type        = bool
+  description = "Use an internal load balancer for the Container Apps environment."
+  default     = true
+}
+
+# --- Storage account ---
+variable "storage_name" {
+  type        = string
+  description = "Storage account name (globally unique, <=24 lowercase alphanumeric). Null auto-generates."
+  default     = null
+}
+
+variable "storage_account_tier" {
+  type        = string
+  description = "Storage account performance tier (Standard, Premium)."
+  default     = "Standard"
+}
+
+variable "storage_account_replication_type" {
+  type        = string
+  description = "Storage replication type (LRS, ZRS, GRS, GZRS, etc.)."
+  default     = "GRS"
+}
+
+variable "storage_access_tier" {
+  type        = string
+  description = "Storage access tier (Hot, Cool)."
+  default     = "Hot"
+}
+
+variable "storage_shared_access_key_enabled" {
+  type        = bool
+  description = "Allow shared-key (account key) access to the storage account."
+  default     = true
+}
+
+variable "storage_public_network_access_enabled" {
+  type        = bool
+  description = "Allow public network access to the storage account."
   default     = false
 }
 
