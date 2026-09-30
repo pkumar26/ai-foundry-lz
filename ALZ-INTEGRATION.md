@@ -87,6 +87,25 @@ to be handled outside the module." The platform team handles:
 | Drop reliance on `deploy_firewall` / `deploy_bastion` (hub provides) | toggles |
 | Peering + UDRs + DNS links + firewall rules | **platform team, outside this config** |
 
+## Front Door with a hub VNet
+
+Azure Front Door is a **global** service — it is never deployed *into* a VNet.
+It reaches a private origin through a **managed private endpoint** that attaches
+to a **Private Link Service (PLS)**. That PLS (plus the internal LB and APIM
+behind it) can live in your spoke (default) or in the **hub / connectivity**
+subscription. No code changes are needed — use the override variables:
+
+| Scenario | Configuration |
+|---|---|
+| PLS/LB/APIM in the AI spoke (default) | LB/PLS auto-derive into the BYO VNet |
+| Put the LB + PLS in the hub VNet | Set `apim_lb_vnet_resource_id` + `apim_lb_subnet_resource_id` to the hub VNet/subnet; keep `deploy_apim_private_link_service = true` |
+| Platform team owns the PLS / Front Door | Set `deploy_apim_private_link_service = false` and pass their target via `front_door_private_link_target_id` (+ `front_door_private_link_target_type`, `front_door_private_link_location`) |
+
+In every case the **Front Door -> PLS private endpoint connection must be
+approved** on the PLS side (the platform team approves it when they own the PLS).
+Pair this with `flag_platform_landing_zone = true` so DNS and routing are
+hub-managed.
+
 ## Practical note
 
 The switch is not seamless on an *existing* deployment: removing the
