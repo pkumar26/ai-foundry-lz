@@ -75,9 +75,19 @@ module "ai_lz" {
 
   # AI gateway. publisher_* are required by the type even when deploy = false.
   apim_definition = {
-    deploy          = var.deploy_apim
-    publisher_email = var.apim_publisher_email
-    publisher_name  = var.apim_publisher_name
+    deploy               = var.deploy_apim
+    publisher_email      = var.apim_publisher_email
+    publisher_name       = var.apim_publisher_name
+    name                 = var.apim_name
+    sku_root             = var.apim_sku_root
+    sku_capacity         = var.apim_sku_capacity
+    virtual_network_type = var.apim_virtual_network_type
+    deploy_sample_apis   = var.apim_deploy_sample_apis
+
+    # System-assigned identity lets APIM authenticate to the Foundry backend.
+    managed_identities = {
+      system_assigned = true
+    }
   }
 
   # GenAI application services.

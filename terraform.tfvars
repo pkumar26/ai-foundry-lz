@@ -90,7 +90,23 @@ deploy_bing_grounding = false
 deploy_ai_agent_service = false
 
 # --- Phase 6: AI gateway (APIM is slow to create, ~30-45 min).
-deploy_apim = false
+deploy_apim               = true
+apim_name                 = "myai-apim-cac-001"  # fixed name -> predictable gateway host
+apim_sku_root             = "Developer"          # works with the PLS pattern; Premium/StandardV2 for prod
+apim_sku_capacity         = 1
+apim_virtual_network_type = "Internal"
+apim_deploy_sample_apis   = true          # sample APIs routing to Foundry (validate connectivity)
+
+# --- Phase 6b: Front Door Premium + WAF -> Private Link -> internal APIM.
+# TWO-STEP: (1) apply Phase 6 first (leave the two switches below false) so APIM
+# exists; read its private IP from the `apim_private_ip` output. (2) set
+# apim_private_ip_address to that value, flip both switches true, apply again.
+deploy_front_door                = true
+deploy_apim_private_link_service = true
+apim_private_ip_address          = "10.50.3.10"  # <-- REPLACE with real APIM private IP (see apim_private_ip output)
+# front_door_origin_host_name defaults to "<apim_name>.azure-api.net"
+# apim_lb_subnet/vnet default to the BYO VNet's PrivateEndpointSubnet
+# front_door_waf_mode = "Prevention"
 
 # --- Phase 7: ops / access (firewall usually external for BYO VNet).
 deploy_bastion  = false

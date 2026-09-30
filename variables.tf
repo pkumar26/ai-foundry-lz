@@ -268,3 +268,144 @@ variable "deploy_buildvm" {
   description = "Deploy the Build VM."
   default     = false
 }
+
+# --- APIM customization ---
+variable "apim_name" {
+  type        = string
+  description = "API Management service name. Null auto-generates."
+  default     = null
+}
+
+variable "apim_sku_root" {
+  type        = string
+  description = "APIM SKU (Developer, Basic, Standard, Premium, BasicV2, StandardV2, PremiumV2)."
+  default     = "Premium"
+}
+
+variable "apim_sku_capacity" {
+  type        = number
+  description = "APIM scale units. Premium minimum is 1."
+  default     = 1
+}
+
+variable "apim_virtual_network_type" {
+  type        = string
+  description = "APIM VNet integration type (None, External, Internal)."
+  default     = "Internal"
+}
+
+variable "apim_deploy_sample_apis" {
+  type        = bool
+  description = "Deploy sample APIs in APIM that route to AI Foundry (validates connectivity)."
+  default     = false
+}
+
+# --- Front Door (Pattern A: Premium + Private Link to APIM) ---
+variable "deploy_front_door" {
+  type        = bool
+  description = "Deploy Azure Front Door Premium in front of APIM."
+  default     = false
+}
+
+variable "front_door_profile_name" {
+  type        = string
+  description = "Front Door profile name. Null auto-generates."
+  default     = null
+}
+
+variable "front_door_sku" {
+  type        = string
+  description = "Front Door SKU. Private Link and managed WAF require Premium_AzureFrontDoor."
+  default     = "Premium_AzureFrontDoor"
+}
+
+variable "front_door_endpoint_name" {
+  type        = string
+  description = "Front Door endpoint name. Null auto-generates."
+  default     = null
+}
+
+variable "front_door_origin_host_name" {
+  type        = string
+  description = "Backend host name Front Door routes to (e.g. the APIM gateway hostname). Required when deploy_front_door is true."
+  default     = null
+}
+
+variable "front_door_origin_host_header" {
+  type        = string
+  description = "Host header sent to the origin. Defaults to front_door_origin_host_name."
+  default     = null
+}
+
+variable "front_door_private_link_target_id" {
+  type        = string
+  description = "Resource ID of the Private Link target (e.g. a Private Link Service fronting internal APIM). Null = public origin (no Private Link)."
+  default     = null
+}
+
+variable "front_door_private_link_target_type" {
+  type        = string
+  description = "Front Door Private Link sub-resource type (e.g. Gateway for APIM, sites for App Service, blob for Storage)."
+  default     = "Gateway"
+}
+
+variable "front_door_private_link_location" {
+  type        = string
+  description = "Region of the Private Link target. Defaults to var.location."
+  default     = null
+}
+
+variable "front_door_route_patterns" {
+  type        = list(string)
+  description = "URL patterns Front Door routes to the origin."
+  default     = ["/*"]
+}
+
+variable "front_door_forwarding_protocol" {
+  type        = string
+  description = "Protocol Front Door uses to the origin (HttpOnly, HttpsOnly, MatchRequest)."
+  default     = "HttpsOnly"
+}
+
+variable "front_door_health_probe_path" {
+  type        = string
+  description = "Origin health probe path. APIM default status endpoint is /status-0123456789abcdef."
+  default     = "/status-0123456789abcdef"
+}
+
+variable "front_door_waf_enabled" {
+  type        = bool
+  description = "Attach a managed WAF policy to the Front Door endpoint."
+  default     = true
+}
+
+variable "front_door_waf_mode" {
+  type        = string
+  description = "WAF mode (Prevention or Detection)."
+  default     = "Prevention"
+}
+
+# --- Private Link Service fronting internal APIM (for Front Door Pattern A) ---
+variable "deploy_apim_private_link_service" {
+  type        = bool
+  description = "Build an internal LB + Private Link Service in front of internal APIM so Front Door can reach it."
+  default     = false
+}
+
+variable "apim_private_ip_address" {
+  type        = string
+  description = "Private IP of the internal APIM gateway (used as the LB backend). Required when deploy_apim_private_link_service is true."
+  default     = null
+}
+
+variable "apim_lb_subnet_resource_id" {
+  type        = string
+  description = "Subnet resource ID for the internal LB frontend and PLS NAT IPs."
+  default     = null
+}
+
+variable "apim_lb_vnet_resource_id" {
+  type        = string
+  description = "VNet resource ID that the LB backend address belongs to."
+  default     = null
+}
