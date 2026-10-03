@@ -23,7 +23,7 @@ output "front_door_endpoints" {
   value       = try(module.front_door[0].frontdoor_endpoints, null)
 }
 
-output "apim_private_ip" {
-  description = "Private IP of the internal APIM gateway. Copy into apim_private_ip_address after APIM deploys."
-  value       = try(module.ai_lz.apim.private_ip_addresses[0], null)
+output "apim_resource_id" {
+  description = "APIM resource ID. Use it to approve Front Door's managed private endpoint connection after apply."
+  value       = try(module.ai_lz.apim.resource_id, null)
 }
