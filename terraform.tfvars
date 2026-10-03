@@ -53,18 +53,19 @@ model_deployments = {
 }
 
 # --- Phase 3: GenAI data services.
-deploy_genai_key_vault          = false
-deploy_genai_storage            = false
-deploy_genai_cosmosdb           = false
-deploy_genai_app_configuration  = false
-deploy_genai_container_registry = false
+deploy_genai_key_vault           = false
+deploy_genai_storage             = false
+deploy_genai_cosmosdb            = false
+deploy_genai_app_configuration   = false
+deploy_genai_container_registry  = true
 deploy_container_app_environment = false
 
 # Optional GenAI service overrides (defaults shown; uncomment to change).
 # ACR (Container Registry)
-# acr_sku                           = "Premium"
-# acr_zone_redundancy_enabled       = true
-# acr_public_network_access_enabled = false
+acr_name                          = "myaiacrcac001" # globally unique, 5-50 alphanumeric, NO hyphens
+acr_sku                           = "Premium"       # required for private endpoints
+acr_zone_redundancy_enabled       = true
+acr_public_network_access_enabled = false # false -> module creates PE + privatelink.azurecr.io DNS
 # ACA (Container Apps environment)
 # aca_zone_redundancy_enabled        = true
 # aca_internal_load_balancer_enabled = true
@@ -91,22 +92,23 @@ deploy_ai_agent_service = false
 
 # --- Phase 6: AI gateway (APIM is slow to create, ~30-45 min).
 deploy_apim               = true
-apim_name                 = "myai-apim-cac-001"  # fixed name -> predictable gateway host
-apim_sku_root             = "Developer"          # works with the PLS pattern; Premium/StandardV2 for prod
+apim_name                 = "myai-apim-cac-001" # fixed name -> predictable gateway host
+apim_sku_root             = "StandardV2"        # v2 SKU: public gateway + outbound VNet integration
 apim_sku_capacity         = 1
-apim_virtual_network_type = "Internal"
-apim_deploy_sample_apis   = true          # sample APIs routing to Foundry (validate connectivity)
+apim_virtual_network_type = "External" # v2 "External" = outbound VNet integration; APIMSubnet is auto-delegated to Microsoft.Web/serverFarms and the gateway stays public
+apim_deploy_sample_apis   = true       # sample APIs routing to Foundry (validate connectivity)
 
-# --- Phase 6b: Front Door Premium + WAF -> Private Link -> internal APIM.
-# TWO-STEP: (1) apply Phase 6 first (leave the two switches below false) so APIM
-# exists; read its private IP from the `apim_private_ip` output. (2) set
-# apim_private_ip_address to that value, flip both switches true, apply again.
-deploy_front_door                = true
-deploy_apim_private_link_service = true
-apim_private_ip_address          = "10.50.3.10"  # <-- REPLACE with real APIM private IP (see apim_private_ip output)
-# front_door_origin_host_name defaults to "<apim_name>.azure-api.net"
-# apim_lb_subnet/vnet default to the BYO VNet's PrivateEndpointSubnet
-# front_door_waf_mode = "Prevention"
+# --- Phase 6b: Front Door Premium + WAF -> APIM via managed Private Link.
+# StandardV2 APIM keeps a PUBLIC gateway while integrating OUTBOUND into the VNet
+# (APIMSubnet delegated to Microsoft.Web/serverFarms) to reach private backends.
+# Front Door Premium connects to the APIM "Gateway" group over a managed Private
+# Link, so no Load Balancer / Private Link Service is needed. After apply you must
+# APPROVE the managed private endpoint on APIM (see the apim_resource_id output).
+# front_door_private_link_target_id defaults to the APIM deployed above.
+deploy_front_door = false
+# front_door_private_link_target_type defaults to "Gateway" (APIM).
+# front_door_origin_host_name defaults to "<apim_name>.azure-api.net".
+# front_door_waf_mode = "Prevention".
 
 # --- Phase 7: ops / access (firewall usually external for BYO VNet).
 deploy_bastion  = false
