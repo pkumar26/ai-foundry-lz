@@ -84,6 +84,10 @@ module "ai_lz" {
     virtual_network_type = var.apim_virtual_network_type
     deploy_sample_apis   = var.apim_deploy_sample_apis
 
+    # StandardV2 keeps a public gateway (required for Front Door Private Link and
+    # the only option allowed at APIM creation time).
+    public_network_access_enabled = true
+
     # System-assigned identity lets APIM authenticate to the Foundry backend.
     managed_identities = {
       system_assigned = true
