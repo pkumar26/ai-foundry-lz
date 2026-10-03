@@ -1,10 +1,10 @@
-# Azure Front Door (Premium) via the AVM CDN profile module — Pattern A: global
-# edge + WAF in front of APIM through Private Link. Toggle with deploy_front_door.
+# Azure Front Door (Premium) via the AVM CDN profile module — global edge + WAF in
+# front of APIM through a managed Private Link. Toggle with deploy_front_door.
 #
-# APIM runs in Internal VNet mode, so Front Door Private Link targets a Private
-# Link Service fronting the internal APIM (see apim-privatelink.tf). Set
-# deploy_apim_private_link_service = true to build that chain, or supply your own
-# front_door_private_link_target_id. Null target = public origin (no Private Link).
+# APIM runs as StandardV2 with a public gateway + outbound VNet integration, so
+# Front Door targets the APIM "Gateway" group directly (see apim-privatelink.tf).
+# The target defaults to the module's APIM; override via front_door_private_link_
+# target_id. The managed private endpoint must be approved on APIM after apply.
 
 module "front_door" {
   count   = var.deploy_front_door ? 1 : 0
@@ -48,8 +48,9 @@ module "front_door" {
       host_name                      = local.front_door_origin_host_name
       origin_host_header             = coalesce(var.front_door_origin_host_header, local.front_door_origin_host_name)
       certificate_name_check_enabled = true
-      # Private Link added only when a target is available (Premium SKU only).
-      private_link = local.front_door_private_link_target_id != null ? {
+      # Private Link to the APIM "Gateway" group. Gated on a plan-time-known switch
+      # so the origins map shape doesn't depend on an apply-time target id.
+      private_link = local.front_door_use_private_link ? {
         pl = {
           request_message        = "Front Door Private Link for AI landing zone"
           target_type            = local.front_door_private_link_target_type
