@@ -129,9 +129,12 @@ module "function_storage" {
 
   private_endpoints = {
     for key, zone in local.func_sa_private_dns : key => {
-      subnet_resource_id            = local.func_pe_subnet_resource_id
-      subresource_name              = key
-      private_dns_zone_resource_ids = [local.func_zone_ids[key]]
+      # Unique per subresource; the module's default name is the same for all PEs.
+      name                            = "pe-${local.func_sa_name}-${key}"
+      private_service_connection_name = "psc-${local.func_sa_name}-${key}"
+      subnet_resource_id              = local.func_pe_subnet_resource_id
+      subresource_name                = key
+      private_dns_zone_resource_ids   = [local.func_zone_ids[key]]
     }
   }
 
