@@ -145,26 +145,16 @@ Tune via `apim_name`, `apim_sku_root` (default `Premium`), `apim_sku_capacity`
 Private Link (global edge, WAF, caching). Enable with `deploy_front_door = true`
 (requires `deploy_apim = true`).
 
-Because the module runs APIM in **Internal VNet mode**, Front Door Private Link
-cannot target it directly. Set `deploy_apim_private_link_service = true` to have
-`apim-privatelink.tf` build an internal Load Balancer (via the AVM
-`avm-res-network-loadbalancer`) plus a Private Link Service in front of APIM;
-Front Door then Private-Links to that PLS automatically. The LB/PLS subnet + VNet
-and the origin hostname are **derived automatically** (BYO VNet's
-`PrivateEndpointSubnet` and `<apim_name>.azure-api.net`), so you normally only
-supply `apim_private_ip_address`. Override `apim_lb_subnet_resource_id` /
-`apim_lb_vnet_resource_id` to place the LB/PLS elsewhere (e.g. a hub VNet), or set
-`front_door_private_link_target_id` yourself to use a platform-owned PLS.
+The module runs APIM in **StandardV2** mode: the gateway keeps a public hostname
+(`<apim_name>.azure-api.net`) and integrates outbound into the VNet to reach
+private backends. Front Door Premium reaches the gateway over a **managed Private
+Link to the `Gateway` sub-resource**, so no internal Load Balancer or Private Link
+Service is required. `apim-privatelink.tf` wires this automatically: the origin
+hostname and Private Link target default to the module's APIM, or set
+`front_door_origin_host_name` / `front_door_private_link_target_id` to override.
 
-**Two-step apply** (APIM's private IP only exists after APIM is created):
-
-1. Apply Phase 6 with `deploy_front_door` and `deploy_apim_private_link_service`
-   set to `false`, then read `terraform output apim_private_ip`.
-2. Set `apim_private_ip_address` to that value, flip both switches `true`, apply
-   again.
-
-Approve the Front Door private endpoint connection on the PLS after apply. See
-`ALZ-INTEGRATION.md` for putting the PLS/LB in a hub VNet.
+Approve the Front Door managed private endpoint on APIM after apply. See
+`ALZ-INTEGRATION.md` for a platform-owned / hub-managed origin.
 
 ## Run
 

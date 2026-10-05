@@ -428,37 +428,6 @@ variable "front_door_waf_mode" {
   default     = "Prevention"
 }
 
-# --- Private Link Service fronting internal APIM (for Front Door Pattern A) ---
-variable "deploy_apim_private_link_service" {
-  type        = bool
-  description = "Build an internal LB + Private Link Service in front of internal APIM so Front Door can reach it."
-  default     = false
-}
-
-variable "apim_private_ip_address" {
-  type        = string
-  description = "Private IP of the internal APIM gateway (used as the LB backend). Required when deploy_apim_private_link_service is true."
-  default     = null
-}
-
-variable "apim_lb_subnet_resource_id" {
-  type        = string
-  description = "Subnet resource ID for the internal LB frontend and PLS NAT IPs. If null, a dedicated subnet (apim_pls_subnet_address_prefix) with PLS network policies disabled is created."
-  default     = null
-}
-
-variable "apim_pls_subnet_address_prefix" {
-  type        = string
-  description = "CIDR for the auto-created Private Link Service subnet (PLS network policies disabled). Must be free inside the BYO VNet and not overlap the module's subnets."
-  default     = "10.50.8.0/24"
-}
-
-variable "apim_lb_vnet_resource_id" {
-  type        = string
-  description = "VNet resource ID that the LB backend address belongs to."
-  default     = null
-}
-
 # --- Azure SQL (optional): server + database + private endpoint ---
 variable "deploy_sql_database" {
   type        = bool
