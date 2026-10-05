@@ -61,7 +61,7 @@ deploy_genai_container_registry  = true
 deploy_container_app_environment = false
 
 # Optional GenAI service overrides (defaults shown; uncomment to change).
-# ACR (Container Registry)
+# ACR (Container Registry) — private endpoint is automatic when public access is off.
 acr_name                          = "myaiacrcac001" # globally unique, 5-50 alphanumeric, NO hyphens
 acr_sku                           = "Premium"       # required for private endpoints
 acr_zone_redundancy_enabled       = true
@@ -105,10 +105,37 @@ apim_deploy_sample_apis   = true       # sample APIs routing to Foundry (validat
 # Link, so no Load Balancer / Private Link Service is needed. After apply you must
 # APPROVE the managed private endpoint on APIM (see the apim_resource_id output).
 # front_door_private_link_target_id defaults to the APIM deployed above.
-deploy_front_door = false
+deploy_front_door = true
 # front_door_private_link_target_type defaults to "Gateway" (APIM).
 # front_door_origin_host_name defaults to "<apim_name>.azure-api.net".
 # front_door_waf_mode = "Prevention".
+
+# --- Azure SQL (optional): logical server + database + private endpoint.
+deploy_sql_database = false
+# sql_server_name      = "myai-sql-cac-001"  # globally unique, lowercase; null auto-generates
+# sql_database_name    = "appdb"
+# sql_database_sku     = "GP_S_Gen5_2"
+# sql_server_version   = "12.0"
+# sql_administrator_login = "sqladmin"        # password is generated -> `terraform output -raw sql_administrator_login_password`
+# sql_public_network_access_enabled = false   # keep false so only the private endpoint can reach it
+# sql_pe_subnet_resource_id defaults to the BYO VNet's PrivateEndpointSubnet
+
+# --- Function App (optional): dedicated Premium v3 app + private-only storage.
+# The app gets a delegated VNet-integration subnet and its storage account is
+# reachable only through blob/queue/table private endpoints. The host uses its
+# managed identity for AzureWebJobsStorage (no keys), with all egress routed
+# through the VNet.
+deploy_function_app = false
+# function_app_name                     = "myai-func-cac-001"
+# function_app_storage_name             = "myaifuncsacac001"  # <=24 lowercase alphanumeric, globally unique
+# function_app_storage_replication_type = "LRS"
+# function_app_subnet_address_prefix    = "10.50.9.0/24"      # must be free in the BYO VNet
+# function_app_service_plan_sku         = "P1v3"              # P1v3/P2v3/P3v3 = Premium v3 (dedicated)
+# function_app_service_plan_name        = "myai-func-cac-001-plan"  # null derives <function_app_name>-plan
+# function_app_worker_count             = 1
+# function_app_zone_balancing_enabled   = false              # true needs worker_count >= zones
+# function_app_node_version             = "20"
+# function_app_pe_subnet_resource_id defaults to the BYO VNet's PrivateEndpointSubnet
 
 # --- Phase 7: ops / access (firewall usually external for BYO VNet).
 deploy_bastion  = false

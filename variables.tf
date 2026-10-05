@@ -196,6 +196,49 @@ variable "aca_internal_load_balancer_enabled" {
   default     = true
 }
 
+# --- Container Apps: frontend + backend apps (aca.tf) ---
+variable "aca_frontend_app_name" {
+  type        = string
+  description = "Name of the frontend container app."
+  default     = "frontend"
+}
+
+variable "aca_backend_app_name" {
+  type        = string
+  description = "Name of the backend container app."
+  default     = "backend"
+}
+
+variable "aca_placeholder_image" {
+  type        = string
+  description = "Placeholder container image used until real images are pushed to ACR."
+  default     = "mcr.microsoft.com/k8se/quickstart:latest"
+}
+
+variable "aca_frontend_target_port" {
+  type        = number
+  description = "Container port the frontend app listens on."
+  default     = 80
+}
+
+variable "aca_backend_target_port" {
+  type        = number
+  description = "Container port the backend app listens on."
+  default     = 80
+}
+
+variable "aca_cpu" {
+  type        = number
+  description = "vCPU allocated to each container app."
+  default     = 0.5
+}
+
+variable "aca_memory" {
+  type        = string
+  description = "Memory allocated to each container app (must pair with aca_cpu, e.g. 0.5 vCPU -> 1Gi)."
+  default     = "1Gi"
+}
+
 # --- Storage account ---
 variable "storage_name" {
   type        = string
@@ -400,12 +443,134 @@ variable "apim_private_ip_address" {
 
 variable "apim_lb_subnet_resource_id" {
   type        = string
-  description = "Subnet resource ID for the internal LB frontend and PLS NAT IPs."
+  description = "Subnet resource ID for the internal LB frontend and PLS NAT IPs. If null, a dedicated subnet (apim_pls_subnet_address_prefix) with PLS network policies disabled is created."
   default     = null
+}
+
+variable "apim_pls_subnet_address_prefix" {
+  type        = string
+  description = "CIDR for the auto-created Private Link Service subnet (PLS network policies disabled). Must be free inside the BYO VNet and not overlap the module's subnets."
+  default     = "10.50.8.0/24"
 }
 
 variable "apim_lb_vnet_resource_id" {
   type        = string
   description = "VNet resource ID that the LB backend address belongs to."
   default     = null
+}
+
+# --- Azure SQL (optional): server + database + private endpoint ---
+variable "deploy_sql_database" {
+  type        = bool
+  description = "Deploy an Azure SQL logical server + database with a private endpoint."
+  default     = false
+}
+
+variable "sql_server_name" {
+  type        = string
+  description = "Name of the Azure SQL logical server (globally unique, lowercase, 1-63 chars). Null auto-generates."
+  default     = null
+}
+
+variable "sql_database_name" {
+  type        = string
+  description = "Name of the Azure SQL database."
+  default     = "appdb"
+}
+
+variable "sql_server_version" {
+  type        = string
+  description = "Azure SQL server version. 12.0 is the current v12 server."
+  default     = "12.0"
+}
+
+variable "sql_database_sku" {
+  type        = string
+  description = "SKU for the SQL database (e.g. GP_S_Gen5_2, S0, Basic)."
+  default     = "GP_S_Gen5_2"
+}
+
+variable "sql_administrator_login" {
+  type        = string
+  description = "SQL administrator login name. A random password is generated and exposed via the sql_administrator_login_password output."
+  default     = "sqladmin"
+}
+
+variable "sql_public_network_access_enabled" {
+  type        = bool
+  description = "Allow public network access to the SQL server. Keep false so only the private endpoint can reach it."
+  default     = false
+}
+
+variable "sql_pe_subnet_resource_id" {
+  type        = string
+  description = "Subnet resource ID for the SQL private endpoint. Defaults to the BYO VNet's PrivateEndpointSubnet."
+  default     = null
+}
+
+# --- Function App (optional): Elastic Premium app + private-only storage ---
+variable "deploy_function_app" {
+  type        = bool
+  description = "Deploy a Linux Function App that reaches its storage account over private endpoints."
+  default     = false
+}
+
+variable "function_app_name" {
+  type        = string
+  description = "Function App name. Null auto-generates from name_prefix + suffix."
+  default     = null
+}
+
+variable "function_app_storage_name" {
+  type        = string
+  description = "Function App storage account name (globally unique, <=24 lowercase alphanumeric). Null auto-generates."
+  default     = null
+}
+
+variable "function_app_storage_replication_type" {
+  type        = string
+  description = "Replication type for the Function App storage account (LRS, ZRS, GRS, etc.)."
+  default     = "LRS"
+}
+
+variable "function_app_subnet_address_prefix" {
+  type        = string
+  description = "CIDR for the Function App's delegated VNet-integration subnet. Must be free inside the BYO VNet and not overlap the module's subnets."
+  default     = "10.50.9.0/24"
+}
+
+variable "function_app_pe_subnet_resource_id" {
+  type        = string
+  description = "Subnet resource ID for the Function App storage private endpoints. Defaults to the BYO VNet's PrivateEndpointSubnet."
+  default     = null
+}
+
+variable "function_app_service_plan_sku" {
+  type        = string
+  description = "Function App plan SKU. P1v3/P2v3/P3v3 are Premium v3 (dedicated, support VNet integration + passwordless storage without a content share)."
+  default     = "P1v3"
+}
+
+variable "function_app_service_plan_name" {
+  type        = string
+  description = "Function App service plan name. Null derives it from the app name (<function_app_name>-plan)."
+  default     = null
+}
+
+variable "function_app_worker_count" {
+  type        = number
+  description = "Number of workers (instances) for the Function App plan."
+  default     = 1
+}
+
+variable "function_app_zone_balancing_enabled" {
+  type        = bool
+  description = "Spread the Function App plan across availability zones. Requires worker_count >= number of zones and a zone-capable region/SKU."
+  default     = false
+}
+
+variable "function_app_node_version" {
+  type        = string
+  description = "Node.js runtime version for the Function App (e.g. 18, 20)."
+  default     = "20"
 }

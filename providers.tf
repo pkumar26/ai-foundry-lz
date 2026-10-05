@@ -48,5 +48,11 @@ provider "azurerm" {
     cognitive_account {
       purge_soft_delete_on_destroy = true
     }
+    # APIM is soft-deleted on destroy and its name reserved ~48h. Purge on
+    # destroy + recover on create so a VNet-type replace can reuse the name.
+    api_management {
+      purge_soft_delete_on_destroy = true
+      recover_soft_deleted         = true
+    }
   }
 }
