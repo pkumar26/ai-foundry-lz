@@ -47,6 +47,18 @@ locals {
     queue = "privatelink.queue.core.windows.net"
     table = "privatelink.table.core.windows.net"
   }
+
+  # Resource group holding the privatelink zones (defaults to the LZ's RG).
+  func_dns_zone_rg = coalesce(var.function_app_dns_zone_resource_group_name, var.resource_group_name)
+
+  # Zone IDs, whether created here or looked up from the existing LZ zones.
+  func_zone_ids = {
+    for key, _ in local.func_sa_private_dns : key => (
+      var.function_app_create_dns_zones
+      ? azurerm_private_dns_zone.function_storage[key].id
+      : data.azurerm_private_dns_zone.function_storage[key].id
+    )
+  }
 }
 
 data "azurerm_client_config" "current" {}
@@ -70,16 +82,25 @@ resource "azurerm_subnet" "function_integration" {
   depends_on = [module.ai_lz]
 }
 
-# --- Private DNS zones for the storage subresources + VNet links. ---
+# --- Private DNS zones for the storage subresources. The landing zone usually
+# already provides privatelink.{blob,queue,table}.core.windows.net, so by default
+# we reference the existing zones; set function_app_create_dns_zones = true to
+# create (and VNet-link) them here instead. ---
+data "azurerm_private_dns_zone" "function_storage" {
+  for_each            = var.deploy_function_app && !var.function_app_create_dns_zones ? local.func_sa_private_dns : {}
+  name                = each.value
+  resource_group_name = local.func_dns_zone_rg
+}
+
 resource "azurerm_private_dns_zone" "function_storage" {
-  for_each            = var.deploy_function_app ? local.func_sa_private_dns : {}
+  for_each            = var.deploy_function_app && var.function_app_create_dns_zones ? local.func_sa_private_dns : {}
   name                = each.value
   resource_group_name = var.resource_group_name
   tags                = var.tags
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "function_storage" {
-  for_each              = var.deploy_function_app ? local.func_sa_private_dns : {}
+  for_each              = var.deploy_function_app && var.function_app_create_dns_zones ? local.func_sa_private_dns : {}
   name                  = "${var.name_prefix}-func-${each.key}-dnslink"
   resource_group_name   = var.resource_group_name
   private_dns_zone_name = azurerm_private_dns_zone.function_storage[each.key].name
@@ -110,7 +131,7 @@ module "function_storage" {
     for key, zone in local.func_sa_private_dns : key => {
       subnet_resource_id            = local.func_pe_subnet_resource_id
       subresource_name              = key
-      private_dns_zone_resource_ids = [azurerm_private_dns_zone.function_storage[key].id]
+      private_dns_zone_resource_ids = [local.func_zone_ids[key]]
     }
   }
 
