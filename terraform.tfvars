@@ -136,6 +136,9 @@ deploy_function_app = false
 # function_app_zone_balancing_enabled   = false              # true needs worker_count >= zones
 # function_app_node_version             = "20"
 # function_app_pe_subnet_resource_id defaults to the BYO VNet's PrivateEndpointSubnet
+# DNS zones: by default the LZ's existing privatelink blob/queue/table zones are reused.
+# function_app_create_dns_zones             = false  # true -> create + VNet-link the zones here
+# function_app_dns_zone_resource_group_name = null   # RG holding the existing zones (null = resource_group_name)
 
 # --- Phase 7: ops / access (firewall usually external for BYO VNet).
 deploy_bastion  = false
