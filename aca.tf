@@ -22,34 +22,25 @@ locals {
   aca_search_endpoint     = var.deploy_ai_search ? "https://${local.aca_search_service_name}.search.windows.net" : ""
 
   aca_sql_server_fqdn = var.deploy_sql_database ? try(module.sql_server[0].resource.fully_qualified_domain_name, "") : ""
-}
 
-# The pattern module doesn't output the environment id, so look it up by name.
-data "azurerm_container_app_environment" "aca" {
-  count               = var.deploy_container_app_environment ? 1 : 0
-  name                = local.aca_env_name
-  resource_group_name = var.resource_group_name
-
-  depends_on = [module.ai_lz]
-}
-
-# Search service id (RBAC scope for the backend identity).
-data "azurerm_search_service" "search" {
-  count               = var.deploy_container_app_environment && var.deploy_ai_search ? 1 : 0
-  name                = local.aca_search_service_name
-  resource_group_name = var.resource_group_name
-
-  depends_on = [module.ai_lz]
+  # The pattern module exposes no outputs for the environment/search, so build
+  # their resource IDs from known names. These are plan-time constants, which
+  # avoids the apply-time "known after apply" churn that a depends_on data source
+  # would push into container_app_environment_id (a force-replacement field).
+  aca_env_id    = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}/providers/Microsoft.App/managedEnvironments/${local.aca_env_name}"
+  aca_search_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}/providers/Microsoft.Search/searchServices/${local.aca_search_service_name}"
 }
 
 # --- Backend: internal ingress only, reachable from the frontend app. ---
 resource "azurerm_container_app" "backend" {
   count                        = var.deploy_container_app_environment ? 1 : 0
   name                         = var.aca_backend_app_name
-  container_app_environment_id = data.azurerm_container_app_environment.aca[0].id
+  container_app_environment_id = local.aca_env_id
   resource_group_name          = var.resource_group_name
   revision_mode                = "Single"
   tags                         = var.tags
+
+  depends_on = [module.ai_lz]
 
   identity {
     type = "SystemAssigned"
@@ -103,10 +94,12 @@ resource "azurerm_container_app" "backend" {
 resource "azurerm_container_app" "frontend" {
   count                        = var.deploy_container_app_environment ? 1 : 0
   name                         = var.aca_frontend_app_name
-  container_app_environment_id = data.azurerm_container_app_environment.aca[0].id
+  container_app_environment_id = local.aca_env_id
   resource_group_name          = var.resource_group_name
   revision_mode                = "Single"
   tags                         = var.tags
+
+  depends_on = [module.ai_lz]
 
   identity {
     type = "SystemAssigned"
@@ -146,14 +139,14 @@ resource "azurerm_container_app" "frontend" {
 # disabled / RBAC enabled on the Search service to take effect.
 resource "azurerm_role_assignment" "backend_search_index_data" {
   count                = var.deploy_container_app_environment && var.deploy_ai_search ? 1 : 0
-  scope                = data.azurerm_search_service.search[0].id
+  scope                = local.aca_search_id
   role_definition_name = "Search Index Data Contributor"
   principal_id         = azurerm_container_app.backend[0].identity[0].principal_id
 }
 
 resource "azurerm_role_assignment" "backend_search_service_contributor" {
   count                = var.deploy_container_app_environment && var.deploy_ai_search ? 1 : 0
-  scope                = data.azurerm_search_service.search[0].id
+  scope                = local.aca_search_id
   role_definition_name = "Search Service Contributor"
   principal_id         = azurerm_container_app.backend[0].identity[0].principal_id
 }
