@@ -15,7 +15,7 @@ locals {
   # Add the ACA frontend to Front Door only when both are deployed.
   aca_fd_enabled       = var.deploy_front_door && var.deploy_container_app_environment
   aca_fd_frontend_fqdn = try(azurerm_container_app.frontend[0].ingress[0].fqdn, null)
-  aca_fd_env_id        = try(data.azurerm_container_app_environment.aca[0].id, null)
+  aca_fd_env_id        = local.aca_env_id
 }
 
 module "front_door" {
@@ -181,6 +181,4 @@ module "front_door" {
       }
     }
   } : {}
-
-  depends_on = [module.ai_lz]
 }

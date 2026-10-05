@@ -115,11 +115,11 @@ module "function_storage" {
   source  = "Azure/avm-res-storage-storageaccount/azurerm"
   version = "0.10.0"
 
-  name                = local.func_sa_name
-  location            = var.location
-  parent_id           = local.func_resource_group_id
-  tags                = var.tags
-  enable_telemetry    = false
+  name             = local.func_sa_name
+  location         = var.location
+  parent_id        = local.func_resource_group_id
+  tags             = var.tags
+  enable_telemetry = false
 
   account_tier                  = "Standard"
   account_replication_type      = var.function_app_storage_replication_type
