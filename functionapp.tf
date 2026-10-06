@@ -182,8 +182,9 @@ module "function_app" {
   storage_account_name          = local.func_sa_name
   storage_uses_managed_identity = true
 
-  # No content share on a dedicated plan; nothing to route over the VNet for it.
-  content_share_force_disabled = true
+  # Dedicated (Premium v3) plan needs no content share. Leave content share at
+  # its default (not force-disabled): forcing it writes WEBSITE_CONTENTSHARE="",
+  # which makes Azure demand the paired WEBSITE_CONTENTAZUREFILECONNECTIONSTRING.
 
   # Regional VNet integration + route all egress (incl. storage) through the VNet.
   virtual_network_subnet_id = azurerm_subnet.function_integration[0].id

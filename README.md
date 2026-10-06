@@ -19,7 +19,10 @@ blast radius small.
 | `variables.tf` | Input variable declarations (including the phase toggles) |
 | `main.tf` | The module call: BYO VNet wiring, subnet overrides, toggle-driven components |
 | `terraform.tfvars` | Your values + the phased rollout switches |
-| `outputs.tf` | VNet, subnets, APIM, Log Analytics, Front Door outputs |
+| `outputs.tf` | VNet, subnets, APIM, Log Analytics, Front Door, SQL, Function App outputs |
+| `aca.tf` | Optional frontend + backend Container Apps on the pattern module's ACA environment |
+| `sql.tf` | Optional Azure SQL logical server + database with a private endpoint (AVM) |
+| `functionapp.tf` | Optional Linux Function App with private, passwordless storage (AVM) |
 | `frontdoor.tf` | Optional Azure Front Door Premium + WAF via the CDN AVM (Pattern A) |
 | `apim-privatelink.tf` | Optional internal LB (AVM) + Private Link Service fronting internal APIM |
 | `ALZ-INTEGRATION.md` | How to move from standalone to a platform (Azure) landing zone |
@@ -155,6 +158,58 @@ hostname and Private Link target default to the module's APIM, or set
 
 Approve the Front Door managed private endpoint on APIM after apply. See
 `ALZ-INTEGRATION.md` for a platform-owned / hub-managed origin.
+
+### Function App (optional)
+
+`functionapp.tf` adds a **Linux Function App that reaches its storage account
+entirely over private endpoints**, built from Azure Verified Modules
+(`avm-res-web-serverfarm` + `avm-res-storage-storageaccount` + `avm-res-web-site`).
+Enable with `deploy_function_app = true`.
+
+How it's wired:
+
+- A dedicated **Premium v3 (P1v3)** plan — dedicated, so no content share is needed.
+- A dedicated storage account with **public access off** and blob/queue/table
+  **private endpoints**; the host authenticates with its **system-assigned managed
+  identity** (`storage_uses_managed_identity`, no keys), granted Storage Blob Data
+  Owner + Queue/Table Data Contributor.
+- A delegated `FunctionAppSubnet` (`Microsoft.Web/serverFarms`) for regional VNet
+  integration, with all egress routed through the VNet.
+- The storage `privatelink.{blob,queue,table}.core.windows.net` zones are **reused**
+  from the landing zone by default (set `function_app_create_dns_zones = true` to
+  create + VNet-link them here instead).
+
+Key knobs (all in `terraform.tfvars`, all optional): `function_app_name`,
+`function_app_storage_name`, `function_app_subnet_address_prefix` (default
+`10.50.9.0/24`), `function_app_service_plan_sku` (default `P1v3`),
+`function_app_service_plan_name`, `function_app_worker_count`,
+`function_app_zone_balancing_enabled`, `function_app_node_version`,
+`function_app_pe_subnet_resource_id`, `function_app_create_dns_zones`,
+`function_app_dns_zone_resource_group_name`.
+
+> Keep the plan on a dedicated SKU (`P1v3/P2v3/P3v3`). Elastic Premium
+> (`EP*`)/Consumption require a key-based content-share connection string, which
+> conflicts with the passwordless, shared-key-disabled storage used here.
+>
+> The reused DNS zones must be linked to the Function App's VNet so the storage
+> private endpoints resolve (the landing zone normally links them for its own
+> private endpoints).
+
+### Azure SQL (optional)
+
+`sql.tf` adds an **Azure SQL logical server + database with a private endpoint**
+(AVM `avm-res-sql-server`). Enable with `deploy_sql_database = true`. Tune via
+`sql_server_name`, `sql_database_name`, `sql_database_sku`, `sql_server_version`,
+`sql_administrator_login` (password is generated — read
+`terraform output -raw sql_administrator_login_password`), and
+`sql_pe_subnet_resource_id` (defaults to the BYO VNet's `PrivateEndpointSubnet`).
+
+### Container Apps (optional)
+
+`aca.tf` adds **frontend + backend Container Apps** on the pattern module's ACA
+environment (enabled via `deploy_container_app_environment`). Both use a
+system-assigned identity; the backend reaches SQL and AI Search privately. Tune
+via the `aca_*` variables (app names, ports, CPU/memory, placeholder image).
 
 ## Run
 

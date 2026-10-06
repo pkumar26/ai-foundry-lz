@@ -53,7 +53,7 @@ model_deployments = {
 }
 
 # --- Phase 3: GenAI data services.
-deploy_genai_key_vault           = false
+deploy_genai_key_vault           = false # required by the Jump VM (stores its admin credentials)
 deploy_genai_storage             = false
 deploy_genai_cosmosdb            = false
 deploy_genai_app_configuration   = false
@@ -141,7 +141,19 @@ deploy_function_app = false
 # function_app_dns_zone_resource_group_name = null   # RG holding the existing zones (null = resource_group_name)
 
 # --- Phase 7: ops / access (firewall usually external for BYO VNet).
+# To reach the Jump VM you need BOTH the Jump VM and Bastion. The Jump VM stores
+# its admin credentials in the GenAI Key Vault, so deploy_genai_key_vault must
+# also be true (see Phase 3 above).
 deploy_bastion  = false
 deploy_jumpvm   = false
 deploy_buildvm  = false
 deploy_firewall = false
+
+# Jump VM customization (optional; defaults shown).
+# jumpvm_name = null            # null -> <name_prefix>-jump
+# jumpvm_sku  = "Standard_B2s"  # e.g. Standard_D2s_v5 for more horsepower
+
+# Bastion customization (optional; defaults shown).
+# bastion_name  = null                  # null -> <name_prefix>-bastion
+# bastion_sku   = "Standard"            # Basic | Standard | Premium
+# bastion_zones = ["1", "2", "3"]       # zone-redundant by default

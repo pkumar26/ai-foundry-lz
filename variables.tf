@@ -302,8 +302,40 @@ variable "deploy_bastion" {
 
 variable "deploy_jumpvm" {
   type        = bool
-  description = "Deploy the Jump VM."
+  description = "Deploy the Jump VM. Requires deploy_bastion = true to connect and deploy_genai_key_vault = true (the VM stores its admin credentials there)."
   default     = false
+}
+
+# --- Jump VM customization ---
+variable "jumpvm_name" {
+  type        = string
+  description = "Jump VM name. Null auto-generates (<name_prefix>-jump)."
+  default     = null
+}
+
+variable "jumpvm_sku" {
+  type        = string
+  description = "Jump VM size/SKU."
+  default     = "Standard_B2s"
+}
+
+# --- Bastion customization ---
+variable "bastion_name" {
+  type        = string
+  description = "Azure Bastion name. Null auto-generates (<name_prefix>-bastion)."
+  default     = null
+}
+
+variable "bastion_sku" {
+  type        = string
+  description = "Azure Bastion SKU (Basic, Standard, Premium). Developer SKU is not supported here because it has no subnet."
+  default     = "Standard"
+}
+
+variable "bastion_zones" {
+  type        = list(string)
+  description = "Availability zones for Azure Bastion."
+  default     = ["1", "2", "3"]
 }
 
 variable "deploy_buildvm" {
@@ -459,6 +491,18 @@ variable "sql_database_sku" {
   default     = "GP_S_Gen5_2"
 }
 
+variable "sql_database_min_capacity" {
+  type        = number
+  description = "Minimum vCore capacity for serverless SQL SKUs (e.g. GP_S_Gen5_2). Ignored for provisioned SKUs."
+  default     = 1
+}
+
+variable "sql_database_auto_pause_delay" {
+  type        = number
+  description = "Auto-pause delay in minutes for serverless SQL SKUs. -1 disables auto-pause; otherwise must be >= 60. Ignored for provisioned SKUs."
+  default     = 60
+}
+
 variable "sql_administrator_login" {
   type        = string
   description = "SQL administrator login name. A random password is generated and exposed via the sql_administrator_login_password output."
@@ -511,6 +555,18 @@ variable "function_app_subnet_address_prefix" {
 variable "function_app_pe_subnet_resource_id" {
   type        = string
   description = "Subnet resource ID for the Function App storage private endpoints. Defaults to the BYO VNet's PrivateEndpointSubnet."
+  default     = null
+}
+
+variable "function_app_create_dns_zones" {
+  type        = bool
+  description = "Create (and VNet-link) the storage privatelink DNS zones here. Keep false to reuse the landing zone's existing blob/queue/table zones."
+  default     = false
+}
+
+variable "function_app_dns_zone_resource_group_name" {
+  type        = string
+  description = "Resource group that holds the existing storage privatelink DNS zones (used when function_app_create_dns_zones is false). Null defaults to resource_group_name."
   default     = null
 }
 
