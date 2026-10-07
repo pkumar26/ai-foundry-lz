@@ -54,6 +54,11 @@ model_deployments = {
 
 # --- Phase 3: GenAI data services.
 deploy_genai_key_vault           = false # required by the Jump VM (stores its admin credentials)
+# The GenAI Key Vault is private (PE only). To let Terraform write secrets (e.g.
+# the Jump VM admin password) from a CLI outside the VNet, set your public IP so
+# the vault firewall allows it. Find it with: curl https://api.ipify.org
+# deployer_ip_address = "203.0.113.5/32"
+# genai_key_vault_public_network_access_enabled = false  # auto-on when deployer_ip_address is set
 deploy_genai_storage             = false
 deploy_genai_cosmosdb            = false
 deploy_genai_app_configuration   = false
@@ -153,7 +158,8 @@ deploy_firewall = false
 # jumpvm_name = null            # null -> <name_prefix>-jump
 # jumpvm_sku  = "Standard_B2s"  # e.g. Standard_D2s_v5 for more horsepower
 
-# Bastion customization (optional; defaults shown).
-# bastion_name  = null                  # null -> <name_prefix>-bastion
+# Bastion customization (optional). UNCOMMENT to override the auto-generated
+# name; while commented the module uses the default "<name_prefix>-bastion".
+# bastion_name  = "my-bastion"          # commented/null -> ailz-bastion
 # bastion_sku   = "Standard"            # Basic | Standard | Premium
 # bastion_zones = ["1", "2", "3"]       # zone-redundant by default

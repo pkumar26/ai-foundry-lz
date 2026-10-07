@@ -207,22 +207,42 @@ module "function_app" {
 # Blob Data Owner is required for AzureWebJobsStorage; queue/table cover
 # trigger metadata and diagnostic events.
 resource "azurerm_role_assignment" "function_storage_blob" {
-  count                = var.deploy_function_app ? 1 : 0
-  scope                = module.function_storage[0].resource_id
-  role_definition_name = "Storage Blob Data Owner"
-  principal_id         = module.function_app[0].system_assigned_mi_principal_id
+  count                            = var.deploy_function_app ? 1 : 0
+  scope                            = module.function_storage[0].resource_id
+  role_definition_name             = "Storage Blob Data Owner"
+  principal_id                     = module.function_app[0].system_assigned_mi_principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+
+  # AzureRM 4.x re-plans the Computed condition fields as unknown, which is
+  # ForceNew and needlessly recreates the assignment on every apply.
+  lifecycle {
+    ignore_changes = [condition, condition_version]
+  }
 }
 
 resource "azurerm_role_assignment" "function_storage_queue" {
-  count                = var.deploy_function_app ? 1 : 0
-  scope                = module.function_storage[0].resource_id
-  role_definition_name = "Storage Queue Data Contributor"
-  principal_id         = module.function_app[0].system_assigned_mi_principal_id
+  count                            = var.deploy_function_app ? 1 : 0
+  scope                            = module.function_storage[0].resource_id
+  role_definition_name             = "Storage Queue Data Contributor"
+  principal_id                     = module.function_app[0].system_assigned_mi_principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = [condition, condition_version]
+  }
 }
 
 resource "azurerm_role_assignment" "function_storage_table" {
-  count                = var.deploy_function_app ? 1 : 0
-  scope                = module.function_storage[0].resource_id
-  role_definition_name = "Storage Table Data Contributor"
-  principal_id         = module.function_app[0].system_assigned_mi_principal_id
+  count                            = var.deploy_function_app ? 1 : 0
+  scope                            = module.function_storage[0].resource_id
+  role_definition_name             = "Storage Table Data Contributor"
+  principal_id                     = module.function_app[0].system_assigned_mi_principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = [condition, condition_version]
+  }
 }

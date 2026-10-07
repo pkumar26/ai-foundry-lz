@@ -57,9 +57,18 @@ module "ai_lz" {
 
   # Ops / access (firewall is external for BYO VNet, so default off).
   firewall_definition = { deploy = var.deploy_firewall }
-  bastion_definition  = { deploy = var.deploy_bastion }
-  jumpvm_definition   = { deploy = var.deploy_jumpvm }
-  buildvm_definition  = { deploy = var.deploy_buildvm }
+  bastion_definition = {
+    deploy = var.deploy_bastion
+    name   = var.bastion_name
+    sku    = var.bastion_sku
+    zones  = var.bastion_zones
+  }
+  jumpvm_definition = {
+    deploy = var.deploy_jumpvm
+    name   = var.jumpvm_name
+    sku    = var.jumpvm_sku
+  }
+  buildvm_definition = { deploy = var.deploy_buildvm }
 
   # App Gateway stays off. The object must be non-null (its default is null) or
   # the WAF-policy submodule fails on a null .deploy. Empty maps satisfy the
@@ -101,7 +110,19 @@ module "ai_lz" {
     zone_redundancy_enabled        = var.aca_zone_redundancy_enabled
     internal_load_balancer_enabled = var.aca_internal_load_balancer_enabled
   }
-  genai_key_vault_definition = { deploy = var.deploy_genai_key_vault }
+  # The GenAI Key Vault is private (PE only) by default. Writing the Jump VM
+  # admin password secret from a Terraform CLI outside the VNet needs the vault
+  # firewall to allow the deployer's public IP; otherwise the secret write 403s
+  # (ForbiddenByConnection). Set deployer_ip_address to open it to just that IP.
+  genai_key_vault_definition = {
+    deploy                        = var.deploy_genai_key_vault
+    public_network_access_enabled = var.genai_key_vault_public_network_access_enabled || var.deployer_ip_address != null
+    network_acls = var.deployer_ip_address != null ? {
+      bypass         = "AzureServices"
+      default_action = "Deny"
+      ip_rules       = [var.deployer_ip_address]
+    } : null
+  }
   genai_storage_account_definition = {
     deploy                        = var.deploy_genai_storage
     name                          = var.storage_name

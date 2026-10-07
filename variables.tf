@@ -86,6 +86,18 @@ variable "deploy_genai_key_vault" {
   default     = false
 }
 
+variable "genai_key_vault_public_network_access_enabled" {
+  type        = bool
+  description = "Enable public network access on the GenAI Key Vault. Leave false to keep it private-endpoint only. Automatically forced on when deployer_ip_address is set."
+  default     = false
+}
+
+variable "deployer_ip_address" {
+  type        = string
+  description = "Public IP (or CIDR, e.g. \"203.0.113.5/32\") of the machine running Terraform. When set, the GenAI Key Vault opens public access but restricts its firewall to this IP so Terraform can write secrets (e.g. the Jump VM admin password). Required when deploy_jumpvm = true and Terraform runs outside the VNet."
+  default     = null
+}
+
 variable "deploy_genai_storage" {
   type        = bool
   description = "Deploy the GenAI Storage Account."
