@@ -158,6 +158,20 @@ deploy_firewall = false
 # jumpvm_name = null            # null -> <name_prefix>-jump
 # jumpvm_sku  = "Standard_B2s"  # e.g. Standard_D2s_v5 for more horsepower
 
+# Jump VM outbound internet.
+#   DEV (this environment): NAT Gateway gives the Jump VM egress. Azure no longer
+#   grants default outbound access to new VMs, so this (or a firewall) is required.
+use_internet_routing       = true
+deploy_jumpbox_nat_gateway = true
+# jumpbox_nat_gateway_zone         = "1"   # null = non-zonal
+# jumpbox_nat_gateway_idle_timeout = 4
+#
+#   PRODUCTION: comment out the two lines above (or set them to the values below)
+#   so the Jump VM egresses through your firewall instead of a NAT Gateway:
+#     use_internet_routing       = false
+#     deploy_jumpbox_nat_gateway = false
+#     firewall_ip_address        = "10.10.0.4"   # your real firewall private IP
+
 # Bastion customization (optional). UNCOMMENT to override the auto-generated
 # name; while commented the module uses the default "<name_prefix>-bastion".
 # bastion_name  = "my-bastion"          # commented/null -> ailz-bastion

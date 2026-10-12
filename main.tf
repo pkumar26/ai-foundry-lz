@@ -21,7 +21,7 @@ module "ai_lz" {
 
   # Route subnet egress directly to the internet. Set to false if the BYO VNet's
   # firewall (firewall_ip_address below) should handle 0.0.0.0/0 egress instead.
-  use_internet_routing = true
+  use_internet_routing = var.use_internet_routing
 
   # Bring your own existing VNet. The module creates its required subnets inside
   # this VNet, so the deployer needs permission to add subnets to it.

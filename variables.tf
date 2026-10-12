@@ -24,6 +24,12 @@ variable "firewall_ip_address" {
   default     = null
 }
 
+variable "use_internet_routing" {
+  type        = bool
+  description = "true: subnets route 0.0.0.0/0 directly to the internet (dev; pair with a NAT Gateway for egress). false: route 0.0.0.0/0 through firewall_ip_address (production)."
+  default     = true
+}
+
 variable "apim_publisher_email" {
   type        = string
   description = "Publisher email for API Management. Only used when deploy_apim is true."
@@ -329,6 +335,25 @@ variable "jumpvm_sku" {
   type        = string
   description = "Jump VM size/SKU."
   default     = "Standard_B2s"
+}
+
+# --- Jump VM outbound (dev NAT Gateway) ---
+variable "deploy_jumpbox_nat_gateway" {
+  type        = bool
+  description = "Dev only: attach a NAT Gateway to JumpboxSubnet for outbound internet. In production keep false and set use_internet_routing=false so egress goes through your firewall."
+  default     = false
+}
+
+variable "jumpbox_nat_gateway_zone" {
+  type        = string
+  description = "Availability zone for the NAT Gateway and its public IP (e.g. \"1\"). Null = non-zonal/regional."
+  default     = null
+}
+
+variable "jumpbox_nat_gateway_idle_timeout" {
+  type        = number
+  description = "NAT Gateway TCP idle timeout in minutes (4-120)."
+  default     = 4
 }
 
 # --- Bastion customization ---
