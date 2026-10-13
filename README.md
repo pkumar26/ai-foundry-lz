@@ -23,6 +23,7 @@ blast radius small.
 | `aca.tf` | Optional frontend + backend Container Apps on the pattern module's ACA environment |
 | `sql.tf` | Optional Azure SQL logical server + database with a private endpoint (AVM) |
 | `functionapp.tf` | Optional Linux Function App with private, passwordless storage (AVM) |
+| `jumpbox-nat.tf` | Optional NAT Gateway giving the Jump VM outbound internet in dev |
 | `frontdoor.tf` | Optional Azure Front Door Premium + WAF via the CDN AVM (Pattern A) |
 | `apim-privatelink.tf` | Optional internal LB (AVM) + Private Link Service fronting internal APIM |
 | `ALZ-INTEGRATION.md` | How to move from standalone to a platform (Azure) landing zone |
@@ -74,6 +75,11 @@ and re-apply. Terraform only adds the newly enabled resources.
 | 5 – Agent | `deploy_ai_agent_service` | Foundry Agent service + its BYOR data services + project connections |
 | 6 – Gateway | `deploy_apim` | API Management (slow, ~30–45 min) |
 | 7 – Ops | `deploy_bastion`, `deploy_jumpvm`, `deploy_buildvm`, `deploy_firewall` | Bastion, Jump VM, Build VM, Firewall |
+
+The Jump VM (Phase 7) stores its admin credentials in the GenAI Key Vault, so
+`deploy_jumpvm = true` also requires `deploy_genai_key_vault = true` (Phase 3), and
+`deploy_bastion = true` to connect. By default the Jump VM has **no outbound
+internet** — see [Ops / access](#ops--access-phase-7) below.
 
 The Foundry account always deploys (Phase 1). At least one project is recommended
 but you can set `ai_projects = {}` for an account-only deployment. Firewall stays
@@ -210,6 +216,32 @@ Key knobs (all in `terraform.tfvars`, all optional): `function_app_name`,
 environment (enabled via `deploy_container_app_environment`). Both use a
 system-assigned identity; the backend reaches SQL and AI Search privately. Tune
 via the `aca_*` variables (app names, ports, CPU/memory, placeholder image).
+
+### Ops / access (Phase 7)
+
+The Jump VM and Bastion are customizable from `terraform.tfvars`:
+
+| Resource | Variables |
+|---|---|
+| Jump VM | `jumpvm_name`, `jumpvm_sku` (default `Standard_B2s`) |
+| Bastion | `bastion_name`, `bastion_sku` (default `Standard`), `bastion_zones` |
+
+**Jump VM outbound internet.** Azure no longer grants default outbound access to
+new VMs, so the Jump VM needs an explicit egress path. Two options, controlled by
+`use_internet_routing` plus `jumpbox-nat.tf`:
+
+- **Dev — NAT Gateway.** Set `use_internet_routing = true` and
+  `deploy_jumpbox_nat_gateway = true`. `jumpbox-nat.tf` creates a NAT Gateway +
+  static public IP and attaches it to `JumpboxSubnet`; the VM egresses (SNAT only,
+  no inbound) through that IP. Optional: `jumpbox_nat_gateway_zone`,
+  `jumpbox_nat_gateway_idle_timeout`.
+- **Production — firewall.** Set `use_internet_routing = false`,
+  `deploy_jumpbox_nat_gateway = false`, and a real `firewall_ip_address`. The
+  module routes `0.0.0.0/0` through your firewall (which SNATs and filters) for
+  **all** subnets. No NAT Gateway is created.
+
+> Don't enable both at once: a NAT Gateway's SNAT wins over the firewall route for
+> that subnet, bypassing the firewall. Keep the dev/prod pairing above.
 
 ## Run
 
