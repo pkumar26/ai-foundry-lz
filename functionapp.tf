@@ -187,8 +187,12 @@ module "function_app" {
   # which makes Azure demand the paired WEBSITE_CONTENTAZUREFILECONNECTIONSTRING.
 
   # Regional VNet integration + route all egress (incl. storage) through the VNet.
-  virtual_network_subnet_id = azurerm_subnet.function_integration[0].id
-  vnet_route_all_traffic    = true
+  virtual_network_subnet_id              = azurerm_subnet.function_integration[0].id
+  vnet_route_all_traffic                 = true
+  vnet_application_traffic_enabled       = true
+  virtual_network_backup_restore_enabled = true
+  vnet_content_share_enabled             = true
+  vnet_image_pull_enabled                = true
 
   site_config = {
     application_stack = {
@@ -204,32 +208,45 @@ module "function_app" {
 }
 
 # --- App identity -> storage data planes (passwordless host access). ---
-# Blob Data Owner is required for AzureWebJobsStorage; queue/table cover trigger
-# metadata and diagnostic events. Created via azapi (not azurerm_role_assignment)
-# because the azurerm schema replans the Computed `condition_version` as unknown
-# every plan, which is ForceNew and recreates the assignment on every apply.
-locals {
-  # Built-in role definition GUIDs (stable across Azure).
-  func_storage_roles = {
-    blob  = "b7e6dc6d-f1e8-4753-8033-0f276bb0955b" # Storage Blob Data Owner
-    queue = "974c5e8b-45b9-4653-ba55-5f855dd0fb88" # Storage Queue Data Contributor
-    table = "0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3" # Storage Table Data Contributor
+# Blob Data Owner is required for AzureWebJobsStorage; queue/table cover
+# trigger metadata and diagnostic events.
+resource "azurerm_role_assignment" "function_storage_blob" {
+  count                            = var.deploy_function_app ? 1 : 0
+  scope                            = module.function_storage[0].resource_id
+  role_definition_name             = "Storage Blob Data Owner"
+  principal_id                     = module.function_app[0].system_assigned_mi_principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+
+  # AzureRM 4.x re-plans the Computed condition fields as unknown, which is
+  # ForceNew and needlessly recreates the assignment on every apply.
+  lifecycle {
+    ignore_changes = [condition, condition_version]
   }
 }
 
-resource "azapi_resource" "function_storage_roles" {
-  for_each = var.deploy_function_app ? local.func_storage_roles : {}
+resource "azurerm_role_assignment" "function_storage_queue" {
+  count                            = var.deploy_function_app ? 1 : 0
+  scope                            = module.function_storage[0].resource_id
+  role_definition_name             = "Storage Queue Data Contributor"
+  principal_id                     = module.function_app[0].system_assigned_mi_principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
 
-  type = "Microsoft.Authorization/roleAssignments@2022-04-01"
-  # Deterministic GUID so the assignment name is stable across plans.
-  name      = uuidv5("url", "${module.function_storage[0].resource_id}|${each.key}|${module.function_app[0].system_assigned_mi_principal_id}")
-  parent_id = module.function_storage[0].resource_id
+  lifecycle {
+    ignore_changes = [condition, condition_version]
+  }
+}
 
-  body = {
-    properties = {
-      roleDefinitionId = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.Authorization/roleDefinitions/${each.value}"
-      principalId      = module.function_app[0].system_assigned_mi_principal_id
-      principalType    = "ServicePrincipal"
-    }
+resource "azurerm_role_assignment" "function_storage_table" {
+  count                            = var.deploy_function_app ? 1 : 0
+  scope                            = module.function_storage[0].resource_id
+  role_definition_name             = "Storage Table Data Contributor"
+  principal_id                     = module.function_app[0].system_assigned_mi_principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = [condition, condition_version]
   }
 }
